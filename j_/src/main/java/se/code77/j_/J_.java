@@ -33,21 +33,21 @@ public class J_ {
         }
     }
 
-    public static class IterableChain<A> extends Chain<Iterable<A>> {
-        public IterableChain(Iterable<A> value) {
+    public static class IterableChain<A, I extends Iterable<A>> extends Chain<I> {
+        public IterableChain(I value) {
             super(value);
         }
 
-        public IterableChain<A> each(IterableEachFunction<A> func) {
+        public IterableChain<A, I> each(IterableEachFunction<A> func) {
             return new IterableChain<>(J_.each(mWrapped, func));
         }
 
-        public <B> IterableChain<B> map(TransformFunction<A, B> func) {
-            return new IterableChain<>(J_.map(mWrapped, func));
+        public <B> CollectionChain<B, Collection<B>> map(TransformFunction<A, B> func) {
+            return new CollectionChain<>(J_.map(mWrapped, func));
         }
 
-        public <B, LB extends Collection<B>> IterableChain<B> map(TransformFunction<A, B> func, LB out) {
-            return new IterableChain<>(J_.map(mWrapped, func, out));
+        public <B, LB extends Collection<B>> CollectionChain<B, LB> map(TransformFunction<A, B> func, LB out) {
+            return new CollectionChain<>(J_.map(mWrapped, func, out));
         }
 
         public <B> Chain<B> reduce(ReduceFunction<A, B> func, B memo) {
@@ -70,11 +70,11 @@ public class J_ {
             return new Chain<>(J_.find(mWrapped, func));
         }
 
-        public IterableChain<A> filter(PredicateFunction<A> func) {
+        public IterableChain<A, Iterable<A>> filter(PredicateFunction<A> func) {
             return new IterableChain<>(J_.filter(mWrapped, func));
         }
 
-        public IterableChain<A> where(Properties properties) {
+        public IterableChain<A, Iterable<A>> where(Properties properties) {
             return new IterableChain<>(J_.where(mWrapped, properties));
         }
 
@@ -82,7 +82,7 @@ public class J_ {
             return new Chain<>(J_.findWhere(mWrapped, properties));
         }
 
-        public IterableChain<A> reject(PredicateFunction<A> predicate) {
+        public IterableChain<A, Iterable<A>> reject(PredicateFunction<A> predicate) {
             return new IterableChain<>(J_.reject(mWrapped, predicate));
         }
 
@@ -98,7 +98,7 @@ public class J_ {
             return new Chain<>(J_.contains(mWrapped, value));
         }
 
-        public <B> IterableChain<B> pluck(String propertyName) {
+        public <B> IterableChain<B, Iterable<B>> pluck(String propertyName) {
             return new IterableChain<>(J_.<B, A>pluck(mWrapped, propertyName));
         }
 
@@ -110,7 +110,7 @@ public class J_ {
             return new Chain<>(J_.min(mWrapped, func));
         }
 
-        public <N extends Number> IterableChain<A> sortBy(TransformFunction<A, N> func) {
+        public <N extends Number> IterableChain<A, Iterable<A>> sortBy(TransformFunction<A, N> func) {
             return new IterableChain<>(J_.sortBy(this.mWrapped, func));
         }
 
@@ -130,10 +130,16 @@ public class J_ {
             return new Chain<>(J_.size(mWrapped));
         }
 
-        public IterableChain<Iterable<A>> partition(PredicateFunction<A> func) {
-            return new IterableChain<>(J_.partition(mWrapped, func));
+        public CollectionChain<Iterable<A>, Collection<Iterable<A>>> partition(PredicateFunction<A> func) {
+            return new CollectionChain<>(J_.partition(mWrapped, func));
         }
+    }
 
+    public static class CollectionChain<A, C extends Collection<A>> extends IterableChain<A, C> {
+
+        public CollectionChain(C value) {
+            super(value);
+        }
     }
 
     void test() {
@@ -155,7 +161,11 @@ public class J_ {
         }, 0).value();
     }
 
-    public static <A> IterableChain<A> chain(Iterable<A> list) {
+    public static <A> CollectionChain<A, Collection<A>> chain(Collection<A> list) {
+        return new CollectionChain<>(list);
+    }
+
+    public static <A> IterableChain<A, Iterable<A>> chain(Iterable<A> list) {
         return new IterableChain<>(list);
     }
 
@@ -198,7 +208,7 @@ public class J_ {
     }
 
 
-    public static <A, B> Iterable<B> map(Iterable<A> list, final TransformFunction<A, B> func) {
+    public static <A, B> Collection<B> map(Iterable<A> list, final TransformFunction<A, B> func) {
         return map(list, func, new ArrayList<B>());
     }
 
@@ -561,7 +571,7 @@ public class J_ {
         return size;
     }
 
-    public static <A> Iterable<Iterable<A>> partition(Iterable<A> list, PredicateFunction<A> func) {
+    public static <A> Collection<Iterable<A>> partition(Iterable<A> list, PredicateFunction<A> func) {
         return Arrays.asList(filter(list, func), reject(list, func));
     }
 
