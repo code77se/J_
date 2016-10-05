@@ -1,11 +1,13 @@
 package se.code77.j_;
 
+import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -489,36 +491,40 @@ public class J_ {
         return min(list, new IdentityTransformFunction<N>());
     }
 
-    private static class RankedItem<A, N extends Number> {
+    private static class TransformedItem<A, B> {
         public final A item;
-        public final N rank;
+        public final B transform;
 
-        public RankedItem(A item, N rank) {
+        public TransformedItem(A item, B transform) {
             this.item = item;
-            this.rank = rank;
+            this.transform = transform;
         }
     }
 
-    public static <A, N extends Number> Iterable<A> sortBy(Iterable<A> list, final TransformFunction<A, N> func) {
-        List<RankedItem<A, N>> entries = new ArrayList<>();
-
-        map(list, new TransformFunction<A, RankedItem<A, N>>() {
+    private static <A, B, C extends Collection<TransformedItem<A, B>>> C transformMap(Iterable<A> list, final TransformFunction<A, B> func, C result) {
+        return J_.map(list, new TransformFunction<A, TransformedItem<A, B>>() {
             @Override
-            public RankedItem<A, N> transform(A item, int index, Iterable<A> list) {
-                return new RankedItem(item, func.transform(item, index, list));
+            public TransformedItem<A, B> transform(A item, int index, Iterable<A> list) {
+                return new TransformedItem<>(item, func.transform(item, index, list));
             }
-        }, entries);
+        }, result);
+    }
 
-        Collections.sort(entries, new Comparator<RankedItem<A, N>>() {
+    public static <A, N extends Number> Iterable<A> sortBy(Iterable<A> list, final TransformFunction<A, N> func) {
+        List<TransformedItem<A, N>> entries = new ArrayList<>();
+
+        transformMap(list, func, entries);
+
+        Collections.sort(entries, new Comparator<TransformedItem<A, N>>() {
             @Override
-            public int compare(RankedItem<A, N> lhs, RankedItem<A, N> rhs) {
-                return lhs.rank.intValue() - rhs.rank.intValue();
+            public int compare(TransformedItem<A, N> lhs, TransformedItem<A, N> rhs) {
+                return lhs.transform.intValue() - rhs.transform.intValue();
             }
         });
 
-        return map(entries, new TransformFunction<RankedItem<A, N>, A>() {
+        return map(entries, new TransformFunction<TransformedItem<A, N>, A>() {
             @Override
-            public A transform(RankedItem<A, N> item, int index, Iterable<RankedItem<A, N>> list) {
+            public A transform(TransformedItem<A, N> item, int index, Iterable<TransformedItem<A, N>> list) {
                 return item.item;
             }
         });
@@ -702,13 +708,11 @@ public class J_ {
     }
 
     public static <A> Collection<A> union(Collection<A>... lists) {
-        Collection<A> result = new ArrayList<>();
+        Collection<A> result = new HashSet<>();
 
         for (Collection<A> list : lists) {
             for (A item : list) {
-                if (!result.contains(item)) {
-                    result.add(item);
-                }
+                result.add(item);
             }
         }
 
@@ -716,7 +720,7 @@ public class J_ {
     }
 
     public static <A> Collection<A> intersection(Collection<A>... lists) {
-        Collection<A> result = new ArrayList<>();
+        Collection<A> result = new HashSet<>();
 
         if (lists.length > 0) {
             Collection<A> list = lists[0];
@@ -755,7 +759,394 @@ public class J_ {
         return result;
     }
 
+    public static <A, B> Collection<A> uniq(Collection<A> list, boolean isSorted, final TransformFunction<A, B> func) {
+        final Collection<A> result = new ArrayList<>();
+        final Collection<B> transforms = new HashSet<>();
+
+        each(list, new IterableEachFunction<A>() {
+            @Override
+            public void run(A item, int index, Iterable<A> list) {
+                B transform = func.transform(item, index, list);
+
+                if (transforms.add(transform)) {
+                    result.add(item);
+                }
+
+            }
+        });
+
+        return result;
+    }
+
+    public static <A> Collection<A> uniq(Collection<A> list, boolean isSorted) {
+        Collection<A> result = new HashSet<>();
+
+        for (A item : list) {
+            result.add(item);
+        }
+
+        return result;
+    }
+
+    public static Collection<Collection<Object>> zip(Collection<?>... lists) {
+        return unzip(Arrays.asList(lists));
+    }
+
+    public static Collection<Collection<Object>> unzip(Collection<Collection<?>> lists) {
+        Collection<Collection<Object>> result = new ArrayList<>();
+        Collection<Iterator<?>> iters = new ArrayList<>();
+
+        for (Collection<?> list : lists) {
+            iters.add(list.iterator());
+        }
+
+        boolean empty = false;
+
+        while (!empty) {
+            Collection<Object> zipped = new ArrayList<>();
+            empty = true;
+
+            for (Iterator<?> iter : iters) {
+                if (iter.hasNext()) {
+                    zipped.add(iter.next());
+                    empty = false;
+                } else {
+                    zipped.add(null);
+                }
+            }
+
+            if (!empty) {
+                result.add(zipped);
+            }
+        }
+
+        return result;
+    }
+
+    public static <K, V> PropertyMap<K, V> object(Collection<K> keys, Collection<V> values) {
+        PropertyMap<K, V> result = new MapPropertyMap<>();
+        Iterator<V> valuesIter = values.iterator();
+
+        for (K key : keys) {
+            if (valuesIter.hasNext()) {
+                V value = valuesIter.next();
+
+                result.setProperty(key, value);
+            }
+        }
+
+        return result;
+    }
+
+    public static <A> int indexOf(Collection<A> list, A value, boolean isSorted) {
+        Iterator<A> iter = list.iterator();
+
+        for (int i = 0; iter.hasNext(); i++) {
+            if (iter.next().equals(value)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static <A> int lastIndexOf(Collection<A> list, A value, int fromIndex) {
+        Iterator<A> iter = list.iterator();
+        int index = -1;
+
+        for (int i = 0; iter.hasNext() && i <= fromIndex; i++) {
+            if (iter.next().equals(value)) {
+                index = i;
+            }
+        }
+
+        return index;
+    }
+
+    public static <A> int lastIndexOf(Collection<A> list, A value) {
+        return lastIndexOf(list, value, list.size());
+    }
+
+    public static <A, B> int sortedIndex(Collection<A> list, A value, TransformFunction<A, B> func) {
+        // TODO
+        return -1;
+    }
+
+    public static <A> int sortedIndex(Collection<A> list, A value) {
+        // TODO
+        return -1;
+    }
+
+    public static <A> int findIndex(Collection<A> list, PredicateFunction<A> func) {
+        // TODO
+        return -1;
+    }
+
+    public static <A> int findLastIndex(Collection<A> list, PredicateFunction<A> func) {
+        // TODO
+        return -1;
+    }
+
+    public static Collection<Integer> range(int stop) {
+        return range(0, stop, 1);
+    }
+
+    public static Collection<Integer> range(int start, int stop) {
+        return range(start, stop, 1);
+    }
+
+    public static Collection<Integer> range(int start, int stop, int step) {
+        Collection<Integer> result = new ArrayList<>();
+
+        for (int i = start; i < stop; i += step) {
+            result.add(i);
+        }
+
+        return result;
+    }
+
+    public static <K, V> Collection<K> keys(PropertyMap<K, V> object) {
+        Collection<K> result = new ArrayList<>();
+
+        for (K key : object) {
+            result.add(key);
+        }
+
+        return result;
+    }
+
+    public static <K, V> Collection<V> values(PropertyMap<K, V> object) {
+        Collection<V> result = new ArrayList<>();
+
+        for (K key : object) {
+            result.add(object.getProperty(key));
+        }
+
+        return result;
+    }
+
+    public interface MapTransformFunction<K, V, TV> extends Function {
+        TV transform(V value, K key, PropertyMap<K, V> object);
+    }
+
+    public interface MapPredicateFunction<K, V> extends Function {
+        boolean predicate(V value, K key, PropertyMap<K, V> object);
+    }
+
+    public static <K, V, TV> PropertyMap<K, TV> mapObject(PropertyMap<K, V> object, MapTransformFunction<K, V, TV> func) {
+        PropertyMap<K, TV> result = new MapPropertyMap<>();
+
+        for (K key : object) {
+            V value = object.getProperty(key);
+            TV transform = func.transform(value, key, object);
+
+            result.setProperty(key, transform);
+        }
+
+        return result;
+    }
+
+    public static class Pair<K, V> extends AbstractCollection<Object> {
+        private final List<Object> mList;
+
+        public Pair(K key, V value) {
+            List<Object> list = new ArrayList<>();
+            list.add(key);
+            list.add(value);
+
+            mList = Collections.unmodifiableList(list);
+        }
+
+        public K key() {
+            return (K)mList.get(0);
+        }
+
+        public V value() {
+            return (V)mList.get(1);
+        }
+
+        @Override
+        public Iterator<Object> iterator() {
+            return mList.iterator();
+        }
+
+        @Override
+        public int size() {
+            return mList.size();
+        }
+    }
+
+    public static <K, V> Collection<Pair<K, V>> pairs(PropertyMap<K, V> object) {
+        Collection<Pair<K, V>> result = new ArrayList<>();
+
+        for (K key : object) {
+            result.add(new Pair<>(key, object.getProperty(key)));
+        }
+
+        return result;
+    }
+
+    public static <K, V> PropertyMap<V, K> invert(PropertyMap<K, V> object) {
+        PropertyMap<V, K> result = new MapPropertyMap<>();
+
+        for (K key : object) {
+            result.setProperty(object.getProperty(key), key);
+        }
+
+        return result;
+    }
+
+    public static <K, V> K findKey(PropertyMap<K, V> object, PredicateFunction<V> func) {
+        for (K key : object) {
+            if (func.predicate(object.getProperty(key))) {
+                return key;
+            }
+        }
+
+        return null;
+    }
+
+    public static <K, V, M extends PropertyMap<K, V>> M extend(M destination, PropertyMap<K, V>... sources) {
+        for (PropertyMap<K, V> source : sources) {
+            for (K key : source) {
+                destination.setProperty(key, source.getProperty(key));
+            }
+        }
+
+        return destination;
+    }
+
+    public static <K, V> PropertyMap<K, V> pick(PropertyMap<K, V> object, K... keys) {
+        PropertyMap<K, V> result = new MapPropertyMap<>();
+
+        for (K key : keys) {
+            V value = object.getProperty(key);
+
+            result.setProperty(key, value);
+        }
+
+        return result;
+    }
+
+    public static <K, V> PropertyMap<K, V> pick(PropertyMap<K, V> object, MapPredicateFunction<K, V> func) {
+        PropertyMap<K, V> result = new MapPropertyMap<>();
+
+        for (K key : object) {
+            V value = object.getProperty(key);
+
+            if (func.predicate(value, key, object)) {
+                result.setProperty(key, value);
+            }
+        }
+
+        return result;
+    }
+
+    public static <K, V> PropertyMap<K, V> omit(PropertyMap<K, V> object, K... keys) {
+        PropertyMap<K, V> result = new MapPropertyMap<>();
+        List<K> blackList = Arrays.asList(keys);
+
+        for (K key : object) {
+            if (!blackList.contains(key)) {
+                V value = object.getProperty(key);
+
+                result.setProperty(key, value);
+            }
+        }
+
+        return result;
+    }
+
+    public static <K, V> PropertyMap<K, V> omit(PropertyMap<K, V> object, final MapPredicateFunction<K, V> func) {
+        return pick(object, new MapPredicateFunction<K, V>() {
+            @Override
+            public boolean predicate(V value, K key, PropertyMap<K, V> object) {
+                return !func.predicate(value, key, object);
+            }
+        });
+    }
+
+    public static <K, V, M extends PropertyMap<K, V>> M defaults(M object, PropertyMap<K, V>... defaults) {
+        for (PropertyMap<K, V> def : defaults) {
+            for (K key : def) {
+                if (object.getProperty(key) == null) {
+                    object.setProperty(key, def.getProperty(key));
+                }
+            }
+        }
+
+        return object;
+    }
+
+    public static <K, V> PropertyMap<K, V> clone(PropertyMap<K, V> object) {
+        PropertyMap<K, V> clone = new MapPropertyMap<>();
+
+        for (K key : object) {
+            clone.setProperty(key, object.getProperty(key));
+        }
+
+        return clone;
+    }
+
+    public interface TapFunction<A> extends Function {
+        void tap(A item);
+    }
+
+    public static <A> A tap(A item, TapFunction<A> func) {
+        func.tap(item);
+
+        return item;
+    }
+
+    public static <K, V> boolean has(PropertyMap<K, V> object, K key) {
+        return object.getProperty(key) != null;
+    }
+
+    public interface PropertyFunction<K, V> extends Function {
+        V call(PropertyMap<K, V> object);
+    }
+
+    public static <K, V> PropertyFunction<K, V> property(final K key) {
+        return new PropertyFunction<K, V>() {
+            @Override
+            public V call(PropertyMap<K, V> object) {
+                return object.getProperty(key);
+            }
+        };
+    }
+
+    public interface PropertyOfFunction<K, V> extends Function {
+        V call(K key);
+    }
+
+    public static <K, V> PropertyOfFunction<K, V> propertyOf(final PropertyMap<K, V> object) {
+        return new PropertyOfFunction<K, V>() {
+            @Override
+            public V call(K key) {
+                return object.getProperty(key);
+            }
+        };
+    }
+
+    public static <K, V> PredicateFunction<PropertyMap<K, V>> matcher(final PropertyMap<K, V> attrs) {
+        return new PredicateFunction<PropertyMap<K, V>>() {
+            @Override
+            public boolean predicate(PropertyMap<K, V> object) {
+                for (K key : attrs) {
+                    if (!attrs.getProperty(key).equals(object.getProperty(key))) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        };
+    }
+
     
+
+
+
 
 
 }
