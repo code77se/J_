@@ -23,19 +23,19 @@ public class J_ {
         }
     }
 
-    public static class MapChain<K, V> extends Chain<Map<K, V>> {
-        public MapChain(Map<K, V> value) {
-            super(value);
-        }
-
-        public MapChain<K, V> each(MapEachFunction<K, V> func) {
-            return new MapChain<>(J_.each(mWrapped, func));
-        }
-    }
+//    public static class MapChain<K, V> extends Chain<Map<K, V>> {
+//        public MapChain(Map<K, V> value) {
+//            super(value);
+//        }
+//
+//        public MapChain<K, V> each(MapEachFunction<K, V> func) {
+//            return new MapChain<>(J_.each(mWrapped, func));
+//        }
+//    }
 
     public static class IterableChain<A, I extends Iterable<A>> extends Chain<I> {
-        public IterableChain(I value) {
-            super(value);
+        public IterableChain(I iterable) {
+            super(iterable);
         }
 
         public IterableChain<A, I> each(IterableEachFunction<A> func) {
@@ -114,16 +114,16 @@ public class J_ {
             return new IterableChain<>(J_.sortBy(this.mWrapped, func));
         }
 
-        public <K> MapChain<K, Collection<A>> groupBy(TransformFunction<A, K> func) {
-            return new MapChain<>(J_.groupBy(mWrapped, func));
+        public <K> PropertyMapChain<K, Collection<A>, PropertyMap<K, Collection<A>>> groupBy(TransformFunction<A, K> func) {
+            return new PropertyMapChain<>(J_.groupBy(mWrapped, func));
         }
 
-        public <K> MapChain<K, A> indexBy(TransformFunction<A, K> func) {
-            return new MapChain<>(J_.indexBy(mWrapped, func));
+        public <K> PropertyMapChain<K, A, PropertyMap<K, A>> indexBy(TransformFunction<A, K> func) {
+            return new PropertyMapChain<>(J_.indexBy(mWrapped, func));
         }
 
-        public <K> MapChain<K, Integer> countBy(TransformFunction<A, K> func) {
-            return new MapChain<>(J_.countBy(mWrapped, func));
+        public <K> PropertyMapChain<K, Integer, PropertyMap<K, Integer>> countBy(TransformFunction<A, K> func) {
+            return new PropertyMapChain<>(J_.countBy(mWrapped, func));
         }
 
         public Chain<Integer> size() {
@@ -136,9 +136,28 @@ public class J_ {
     }
 
     public static class CollectionChain<A, C extends Collection<A>> extends IterableChain<A, C> {
+        public CollectionChain(C collection) {
+            super(collection);
+        }
 
-        public CollectionChain(C value) {
-            super(value);
+        public Chain<A> first() {
+            return new Chain<>(J_.first(mWrapped));
+        }
+
+        public CollectionChain<A, Collection<A>> initial(int excludeCount) {
+            return new CollectionChain<>(J_.initial(mWrapped, excludeCount));
+        }
+
+        // TODO wrap  collectiom methods
+    }
+
+    public static class PropertyMapChain<K, V, M extends PropertyMap<K, V>> extends IterableChain<K, M> {
+        public PropertyMapChain(M map) {
+            super(map);
+        }
+
+        public PropertyMapChain<K, V, M> each(MapEachFunction<K, V> func) {
+            return new PropertyMapChain<>(J_.each(mWrapped, func));
         }
     }
 
@@ -189,14 +208,14 @@ public class J_ {
     }
 
     public interface MapEachFunction<K, V> extends Function {
-        void run(V value, K key, Map<K, V> map);
+        void run(V value, K key, PropertyMap<K, V> map);
     }
 
-    public static <K, V, M extends Map<K, V>> M each(final M map, final MapEachFunction<K, V> func) {
-        each(map.entrySet(), new IterableEachFunction<Map.Entry<K, V>>() {
+    public static <K, V, M extends PropertyMap<K, V>> M each(final M map, final MapEachFunction<K, V> func) {
+        each(map, new IterableEachFunction<K>() {
             @Override
-            public void run(Map.Entry<K, V> item, int index, Iterable<Map.Entry<K, V>> list) {
-                func.run(item.getValue(), item.getKey(), map);
+            public void run(K item, int index, Iterable<K> list) {
+                func.run(map.getProperty(item), item, map);
             }
         });
 
@@ -505,18 +524,18 @@ public class J_ {
         });
     }
 
-    public static <A, K> Map<K, Collection<A>> groupBy(Iterable<A> list, final TransformFunction<A, K> func) {
-        final Map<K, Collection<A>> result = new HashMap<>();
+    public static <A, K> PropertyMap<K, Collection<A>> groupBy(Iterable<A> list, final TransformFunction<A, K> func) {
+        final PropertyMap<K, Collection<A>> result = new MapPropertyMap<>();
 
         each(list, new IterableEachFunction<A>() {
             @Override
             public void run(A item, int index, Iterable<A> list) {
                 K key = func.transform(item, index, list);
-                Collection<A> values = result.get(key);
+                Collection<A> values = result.getProperty(key);
 
                 if (values == null) {
                     values = new ArrayList<>();
-                    result.put(key, values);
+                    result.setProperty(key, values);
                 }
                 
                 values.add(item);
@@ -526,35 +545,35 @@ public class J_ {
         return result;
     }
 
-    public static <A, K> Map<K, A> indexBy(Iterable<A> list, final TransformFunction<A, K> func) {
-        final Map<K, A> result = new HashMap<>();
+    public static <A, K> PropertyMap<K, A> indexBy(Iterable<A> list, final TransformFunction<A, K> func) {
+        final PropertyMap<K, A> result = new MapPropertyMap<>();
 
         each(list, new IterableEachFunction<A>() {
             @Override
             public void run(A item, int index, Iterable<A> list) {
                 K key = func.transform(item, index, list);
 
-                result.put(key, item);
+                result.setProperty(key, item);
             }
         });
 
         return result;
     }
 
-    public static <A, K> Map<K, Integer> countBy(Iterable<A> list, final TransformFunction<A, K> func) {
-        final Map<K, Integer> result = new HashMap<>();
+    public static <A, K> PropertyMap<K, Integer> countBy(Iterable<A> list, final TransformFunction<A, K> func) {
+        final PropertyMap<K, Integer> result = new MapPropertyMap<>();
 
         each(list, new IterableEachFunction<A>() {
             @Override
             public void run(A item, int index, Iterable<A> list) {
                 K key = func.transform(item, index, list);
-                Integer value = result.get(key);
+                Integer value = result.getProperty(key);
 
                 if (value == null) {
                     value = 0;
                 }
 
-                result.put(key, value + 1);
+                result.setProperty(key, value + 1);
             }
         });
 
@@ -574,5 +593,169 @@ public class J_ {
     public static <A> Collection<Iterable<A>> partition(Iterable<A> list, PredicateFunction<A> func) {
         return Arrays.asList(filter(list, func), reject(list, func));
     }
+
+    public static <A> A first(Collection<A> list) {
+        for (A item : list) {
+            return item;
+        }
+
+        return null;
+    }
+
+    public static <A> Collection<A> first(Collection<A> list, int count) {
+        Collection<A> result = new ArrayList<>(count);
+        Iterator<A> iter = list.iterator();
+
+        for (int i = 0; i < count && iter.hasNext(); i++) {
+            result.add(iter.next());
+        }
+
+        return result;
+    }
+
+    public static <A> Collection<A> initial(Collection<A> list, int excludeCount) {
+        return first(list, list.size() - excludeCount);
+    }
+
+    public static <A> A last(Collection<A> list) {
+        return first(last(list, 1));
+    }
+
+    public static <A> Collection<A> last(Collection<A> list, int count) {
+        Collection<A> result = new ArrayList<>(count);
+        Iterator<A> iter = list.iterator();
+
+        for (int i = 0, size = list.size(); iter.hasNext(); i++) {
+            if (i >= size - count) {
+                result.add(iter.next());
+            }
+        }
+
+        return result;
+    }
+
+    public static <A> Collection<A> rest(Collection<A> list, int excludeCount) {
+        return last(list, list.size() - excludeCount);
+    }
+
+    public static <A> Collection<A> compact(Collection<A> list) {
+        Collection<A> result = new ArrayList<>();
+
+        for (A item : list) {
+            if (!isFalsy(item)) {
+                result.add(item);
+            }
+        }
+
+        return result;
+    }
+
+    private static <A> boolean isFalsy(A item) {
+        boolean falsy = false;
+
+        if (item == null) {
+            falsy = true;
+        } else if (item instanceof Number) {
+            falsy = ((Number)item).intValue() == 0;
+        } else if (item instanceof Boolean) {
+            falsy = ((Boolean)item);
+        } else if (item instanceof CharSequence) {
+            falsy = ((CharSequence)item).length() == 0;
+        }
+        return falsy;
+    }
+
+    public static <A, C extends Collection<A>> Collection<A> flatten(Collection<C> list) {
+        Collection<A> result = new ArrayList<>(list.size());
+
+        for (C item : list) {
+            result.addAll(item);
+        }
+
+        return result;
+    }
+
+    public static Collection<Object> flatten(Collection<?> list, boolean shallow) {
+        Collection<Object> result = new ArrayList<>(list.size());
+
+        for (Object item : list) {
+            if (item instanceof Collection) {
+                Collection<?> subList = (Collection<?>) item;
+
+                if (!shallow) {
+                    subList = flatten(subList, false);
+                }
+
+                result.addAll(subList);
+            } else {
+                result.add(item);
+            }
+        }
+
+        return result;
+    }
+
+    public static <A> Collection<A> without(Collection<A> list, A... values) {
+        List<A> excludedValues = Arrays.asList(values);
+
+        return difference(list, excludedValues);
+    }
+
+    public static <A> Collection<A> union(Collection<A>... lists) {
+        Collection<A> result = new ArrayList<>();
+
+        for (Collection<A> list : lists) {
+            for (A item : list) {
+                if (!result.contains(item)) {
+                    result.add(item);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public static <A> Collection<A> intersection(Collection<A>... lists) {
+        Collection<A> result = new ArrayList<>();
+
+        if (lists.length > 0) {
+            Collection<A> list = lists[0];
+
+            for (A item : list) {
+                if (!result.contains(item)) {
+                    boolean intersects = true;
+
+                    for (int j = 1; j < lists.length; j++) {
+                        if (!lists[j].contains(item)) {
+                            intersects = false;
+                            break;
+                        }
+                    }
+
+                    if (intersects) {
+                        result.add(item);
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public static <A> Collection<A> difference(Collection<A> list, Collection<A>... others) {
+        Collection<A> result = new ArrayList<>();
+        Collection<A> excludedValues = flatten(Arrays.asList(others));
+
+        for (A item : list) {
+            if (!excludedValues.contains(item)) {
+                result.add(item);
+            }
+        }
+
+        return result;
+    }
+
+    
+
 
 }
