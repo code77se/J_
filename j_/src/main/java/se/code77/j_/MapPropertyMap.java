@@ -1,5 +1,6 @@
 package se.code77.j_;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -8,6 +9,10 @@ public class MapPropertyMap<K, V> implements PropertyMap<K, V> {
 
     public MapPropertyMap(Map<K, V> map) {
         mMap = map;
+    }
+
+    public MapPropertyMap() {
+        this(new HashMap<K, V>());
     }
 
     @Override
