@@ -33,21 +33,21 @@ public class J_ {
         }
     }
 
-    public static class CollectionChain<A> extends Chain<Collection<A>> {
-        public CollectionChain(Collection<A> value) {
+    public static class IterableChain<A> extends Chain<Iterable<A>> {
+        public IterableChain(Iterable<A> value) {
             super(value);
         }
 
-        public CollectionChain<A> each(CollectionEachFunction<A> func) {
-            return new CollectionChain<>(J_.each(mWrapped, func));
+        public IterableChain<A> each(IterableEachFunction<A> func) {
+            return new IterableChain<>(J_.each(mWrapped, func));
         }
 
-        public <B> CollectionChain<B> map(TransformFunction<A, B> func) {
-            return new CollectionChain<>(J_.map(mWrapped, func));
+        public <B> IterableChain<B> map(TransformFunction<A, B> func) {
+            return new IterableChain<>(J_.map(mWrapped, func));
         }
 
-        public <B, LB extends Collection<B>> CollectionChain<B> map(TransformFunction<A, B> func, LB out) {
-            return new CollectionChain<>(J_.map(mWrapped, func, out));
+        public <B, LB extends Collection<B>> IterableChain<B> map(TransformFunction<A, B> func, LB out) {
+            return new IterableChain<>(J_.map(mWrapped, func, out));
         }
 
         public <B> Chain<B> reduce(ReduceFunction<A, B> func, B memo) {
@@ -70,20 +70,20 @@ public class J_ {
             return new Chain<>(J_.find(mWrapped, func));
         }
 
-        public CollectionChain<A> filter(PredicateFunction<A> func) {
-            return new CollectionChain<>(J_.filter(mWrapped, func));
+        public IterableChain<A> filter(PredicateFunction<A> func) {
+            return new IterableChain<>(J_.filter(mWrapped, func));
         }
 
-        public CollectionChain<A> where(Properties properties) {
-            return new CollectionChain<>(J_.where(mWrapped, properties));
+        public IterableChain<A> where(Properties properties) {
+            return new IterableChain<>(J_.where(mWrapped, properties));
         }
 
         public Chain<A> findWhere(Properties properties) {
             return new Chain<>(J_.findWhere(mWrapped, properties));
         }
 
-        public CollectionChain<A> reject(PredicateFunction<A> predicate) {
-            return new CollectionChain<>(J_.reject(mWrapped, predicate));
+        public IterableChain<A> reject(PredicateFunction<A> predicate) {
+            return new IterableChain<>(J_.reject(mWrapped, predicate));
         }
 
         public Chain<Boolean> every(PredicateFunction<A> predicate) {
@@ -98,8 +98,8 @@ public class J_ {
             return new Chain<>(J_.contains(mWrapped, value));
         }
 
-        public <B> CollectionChain<B> pluck(String propertyName) {
-            return new CollectionChain<>(J_.<B, A>pluck(mWrapped, propertyName));
+        public <B> IterableChain<B> pluck(String propertyName) {
+            return new IterableChain<>(J_.<B, A>pluck(mWrapped, propertyName));
         }
 
         public <N extends Number> Chain<N> max(TransformFunction<A, N> func) {
@@ -110,8 +110,8 @@ public class J_ {
             return new Chain<>(J_.min(mWrapped, func));
         }
 
-        public <N extends Number> CollectionChain<A> sortBy(TransformFunction<A, N> func) {
-            return new CollectionChain<>(J_.sortBy(this.mWrapped, func));
+        public <N extends Number> IterableChain<A> sortBy(TransformFunction<A, N> func) {
+            return new IterableChain<>(J_.sortBy(this.mWrapped, func));
         }
 
         public <K> MapChain<K, Collection<A>> groupBy(TransformFunction<A, K> func) {
@@ -127,11 +127,11 @@ public class J_ {
         }
 
         public Chain<Integer> size() {
-            return new Chain<>(mWrapped.size());
+            return new Chain<>(J_.size(mWrapped));
         }
 
-        public CollectionChain<Collection<A>> partition(PredicateFunction<A> func) {
-            return new CollectionChain<>(J_.partition(mWrapped, func));
+        public IterableChain<Iterable<A>> partition(PredicateFunction<A> func) {
+            return new IterableChain<>(J_.partition(mWrapped, func));
         }
 
     }
@@ -139,7 +139,7 @@ public class J_ {
     void test() {
         J_.chain(Arrays.asList("Henrik", "Anna")).map(new TransformFunction<String, Integer>() {
             @Override
-            public Integer transform(String item, int index, Collection<String> list) {
+            public Integer transform(String item, int index, Iterable<String> list) {
                 return item.length();
             }
         }).filter(new PredicateFunction<Integer>() {
@@ -149,24 +149,24 @@ public class J_ {
             }
         }).reduce(new ReduceFunction<Integer, Integer>() {
             @Override
-            public Integer reduce(Integer memo, Integer item, int index, Collection<Integer> list) {
+            public Integer reduce(Integer memo, Integer item, int index, Iterable<Integer> list) {
                 return memo + item;
             }
         }, 0).value();
     }
 
-    public static <A> CollectionChain<A> chain(Collection<A> list) {
-        return new CollectionChain<>(list);
+    public static <A> IterableChain<A> chain(Iterable<A> list) {
+        return new IterableChain<>(list);
     }
 
     public interface Function {
     }
 
-    public interface CollectionEachFunction<A> extends Function {
-        void run(A item, int index, Collection<A> list);
+    public interface IterableEachFunction<A> extends Function {
+        void run(A item, int index, Iterable<A> list);
     }
 
-    public static <A, L extends Collection<A>> L each(L list, CollectionEachFunction<A> func) {
+    public static <A, L extends Iterable<A>> L each(L list, IterableEachFunction<A> func) {
         Iterator<A> iter = list.iterator();
 
         for (int i = 0; iter.hasNext(); i++) {
@@ -183,9 +183,9 @@ public class J_ {
     }
 
     public static <K, V, M extends Map<K, V>> M each(final M map, final MapEachFunction<K, V> func) {
-        each(map.entrySet(), new CollectionEachFunction<Map.Entry<K, V>>() {
+        each(map.entrySet(), new IterableEachFunction<Map.Entry<K, V>>() {
             @Override
-            public void run(Map.Entry<K, V> item, int index, Collection<Map.Entry<K, V>> list) {
+            public void run(Map.Entry<K, V> item, int index, Iterable<Map.Entry<K, V>> list) {
                 func.run(item.getValue(), item.getKey(), map);
             }
         });
@@ -194,18 +194,18 @@ public class J_ {
     }
 
     public interface TransformFunction<A, B> extends Function {
-        B transform(A item, int index, Collection<A> list);
+        B transform(A item, int index, Iterable<A> list);
     }
 
 
-    public static <A, B> Collection<B> map(Collection<A> list, final TransformFunction<A, B> func) {
+    public static <A, B> Iterable<B> map(Iterable<A> list, final TransformFunction<A, B> func) {
         return map(list, func, new ArrayList<B>());
     }
 
-    public static <A, B, LB extends Collection<B>> LB map(Collection<A> list, final TransformFunction<A, B> func, LB result) {
+    public static <A, B, LB extends Collection<B>> LB map(Iterable<A> list, final TransformFunction<A, B> func, LB result) {
         Iterator<A> iter = list.iterator();
 
-        for (int i = 0, size = list.size(); i < size; i++) {
+        for (int i = 0; iter.hasNext(); i++) {
             result.add(func.transform(iter.next(), i, list));
         }
 
@@ -213,20 +213,30 @@ public class J_ {
     }
 
     public interface ReduceFunction<A, B> extends Function {
-        B reduce(B memo, A item, int index, Collection<A> list);
+        B reduce(B memo, A item, int index, Iterable<A> list);
     }
 
-    public static <A> A reduce(Collection<A> list, ReduceFunction<A, A> func) {
-        List<A> tmp = new ArrayList<>(list);
+    private static <A> List<A> copy(Iterable<A> list) {
+        List<A> result = new ArrayList<>();
+
+        for (A item : list) {
+            result.add(item);
+        }
+
+        return result;
+    }
+
+    public static <A> A reduce(Iterable<A> list, ReduceFunction<A, A> func) {
+        List<A> tmp = copy(list);
         A memo = tmp.remove(0);
 
         return reduce(list, func, memo);
     }
 
-    public static <A, B> B reduce(Collection<A> list, ReduceFunction<A, B> func, B memo) {
+    public static <A, B> B reduce(Iterable<A> list, ReduceFunction<A, B> func, B memo) {
         Iterator<A> iter = list.iterator();
 
-        for (int i = 0, size = list.size(); i < size; i++) {
+        for (int i = 0; iter.hasNext(); i++) {
             A item = iter.next();
 
             memo = func.reduce(memo, item, i, list);
@@ -235,8 +245,8 @@ public class J_ {
         return memo;
     }
 
-    public static <A> A reduceRight(Collection<A> list, ReduceFunction<A, A> func) {
-        List<A> tmp = new ArrayList<>(list.size());
+    public static <A> A reduceRight(Iterable<A> list, ReduceFunction<A, A> func) {
+        List<A> tmp = new ArrayList<>();
 
         for (A item : list) {
             tmp.add(0, item);
@@ -247,8 +257,8 @@ public class J_ {
         return reduce(list, func, memo);
     }
 
-    public static <A, B> B reduceRight(Collection<A> list, ReduceFunction<A, B> func, B memo) {
-        List<A> tmp = new ArrayList<>(list.size());
+    public static <A, B> B reduceRight(Iterable<A> list, ReduceFunction<A, B> func, B memo) {
+        List<A> tmp = new ArrayList<>();
 
         for (A item : list) {
             tmp.add(0, item);
@@ -261,7 +271,7 @@ public class J_ {
         boolean predicate(A item);
     }
 
-    public static <A> A find(Collection<A> list, PredicateFunction<A> func) {
+    public static <A> A find(Iterable<A> list, PredicateFunction<A> func) {
         for (A item : list) {
             if (func.predicate(item)) {
                 return item;
@@ -271,13 +281,13 @@ public class J_ {
         return null;
     }
 
-    public static <A> Collection<A> filter(Collection<A> list, PredicateFunction<A> func) {
+    public static <A> Iterable<A> filter(Iterable<A> list, PredicateFunction<A> func) {
         Collection<A> result = new ArrayList<>();
 
         return filter(list, func, result);
     }
 
-    public static <A, LA extends Collection<A>> LA filter(Collection<A> list, PredicateFunction<A> func, LA result) {
+    public static <A, LA extends Collection<A>> LA filter(Iterable<A> list, PredicateFunction<A> func, LA result) {
         for (A item : list) {
             if (func.predicate(item)) {
                 result.add(item);
@@ -319,7 +329,7 @@ public class J_ {
         }
     }
 
-    public static <A> Collection<A> where(Collection<A> list, Properties properties) {
+    public static <A> Iterable<A> where(Iterable<A> list, Properties properties) {
         return filter(list, properties.<A>getPredicate());
     }
 
@@ -327,11 +337,11 @@ public class J_ {
         where(Arrays.asList(new HashMap<String, Integer>()), new Properties.Builder().put("name", "Henrik").put("age", 39).build());
     }
 
-    public static <A> A findWhere(Collection<A> list, Properties properties) {
+    public static <A> A findWhere(Iterable<A> list, Properties properties) {
         return find(list, properties.<A>getPredicate());
     }
 
-    public static <A> Collection<A> reject(Collection<A> list, final PredicateFunction<A> func) {
+    public static <A> Iterable<A> reject(Iterable<A> list, final PredicateFunction<A> func) {
         return filter(list, new PredicateFunction<A>() {
             @Override
             public boolean predicate(A item) {
@@ -340,7 +350,7 @@ public class J_ {
         });
     }
 
-    public static <A> boolean every(Collection<A> list, PredicateFunction<A> func) {
+    public static <A> boolean every(Iterable<A> list, PredicateFunction<A> func) {
         for (A item : list) {
             if (!func.predicate(item)) {
                 return false;
@@ -350,7 +360,7 @@ public class J_ {
         return true;
     }
 
-    public static <A> boolean some(Collection<A> list, PredicateFunction<A> func) {
+    public static <A> boolean some(Iterable<A> list, PredicateFunction<A> func) {
         for (A item : list) {
             if (func.predicate(item)) {
                 return true;
@@ -360,7 +370,7 @@ public class J_ {
         return false;
     }
 
-    public static <A> boolean contains(Collection<A> list, A value, int fromIndex) {
+    public static <A> boolean contains(Iterable<A> list, A value, int fromIndex) {
         Iterator<A> iter = list.iterator();
 
         for (int i = 0; iter.hasNext(); i++) {
@@ -374,11 +384,11 @@ public class J_ {
         return false;
     }
 
-    public static <A> boolean contains(Collection<A> list, A value) {
+    public static <A> boolean contains(Iterable<A> list, A value) {
         return contains(list, value, 0);
     }
 
-//    public static <A, B> Collection<B> pluck(Collection<A> list, String propertyName, Class<B> clazz) {
+//    public static <A, B> Iterable<B> pluck(Iterable<A> list, String propertyName, Class<B> clazz) {
 //        List<B> result = new ArrayList<>(list.size());
 //
 //        for (A item : list) {
@@ -402,8 +412,8 @@ public class J_ {
         return null;
     }
 
-    public static <V, A> Collection<V> pluck(Collection<A> list, String keyName) {
-        List<V> result = new ArrayList<>(list.size());
+    public static <V, A> Iterable<V> pluck(Iterable<A> list, String keyName) {
+        List<V> result = new ArrayList<>();
 
         for (A item : list) {
             result.add((V)getValue(item, keyName));
@@ -413,10 +423,10 @@ public class J_ {
     }
 
 
-    public static <A, N extends Number> N max(Collection<A> list, final TransformFunction<A, N> func) {
+    public static <A, N extends Number> N max(Iterable<A> list, final TransformFunction<A, N> func) {
         return reduce(list, new ReduceFunction<A, N>() {
             @Override
-            public N reduce(N memo, A item, int index, Collection<A> list) {
+            public N reduce(N memo, A item, int index, Iterable<A> list) {
                 N number = func.transform(item, index, list);
                 
                 return memo == null || number.longValue() > memo.longValue() ? number : memo;
@@ -426,19 +436,19 @@ public class J_ {
 
     private static class IdentityTransformFunction<A> implements TransformFunction<A, A> {
         @Override
-        public A transform(A item, int index, Collection<A> list) {
+        public A transform(A item, int index, Iterable<A> list) {
             return item;
         }
     }
 
-    public static <N extends Number> N max(Collection<N> list) {
+    public static <N extends Number> N max(Iterable<N> list) {
         return max(list, new IdentityTransformFunction<N>());
     }
 
-    public static <A, N extends Number> N min(Collection<A> list, final TransformFunction<A, N> func) {
+    public static <A, N extends Number> N min(Iterable<A> list, final TransformFunction<A, N> func) {
         return reduce(list, new ReduceFunction<A, N>() {
             @Override
-            public N reduce(N memo, A item, int index, Collection<A> list) {
+            public N reduce(N memo, A item, int index, Iterable<A> list) {
                 N number = func.transform(item, index, list);
                 
                 return memo == null || number.longValue() < memo.longValue() ? number : memo;
@@ -446,7 +456,7 @@ public class J_ {
         }, null);
     }
 
-    public static <N extends Number> N min(Collection<N> list) {
+    public static <N extends Number> N min(Iterable<N> list) {
         return min(list, new IdentityTransformFunction<N>());
     }
 
@@ -460,12 +470,12 @@ public class J_ {
         }
     }
 
-    public static <A, N extends Number> Collection<A> sortBy(Collection<A> list, final TransformFunction<A, N> func) {
+    public static <A, N extends Number> Iterable<A> sortBy(Iterable<A> list, final TransformFunction<A, N> func) {
         List<RankedItem<A, N>> entries = new ArrayList<>();
 
         map(list, new TransformFunction<A, RankedItem<A, N>>() {
             @Override
-            public RankedItem<A, N> transform(A item, int index, Collection<A> list) {
+            public RankedItem<A, N> transform(A item, int index, Iterable<A> list) {
                 return new RankedItem(item, func.transform(item, index, list));
             }
         }, entries);
@@ -479,18 +489,18 @@ public class J_ {
 
         return map(entries, new TransformFunction<RankedItem<A, N>, A>() {
             @Override
-            public A transform(RankedItem<A, N> item, int index, Collection<RankedItem<A, N>> list) {
+            public A transform(RankedItem<A, N> item, int index, Iterable<RankedItem<A, N>> list) {
                 return item.item;
             }
         });
     }
 
-    public static <A, K> Map<K, Collection<A>> groupBy(Collection<A> list, final TransformFunction<A, K> func) {
+    public static <A, K> Map<K, Collection<A>> groupBy(Iterable<A> list, final TransformFunction<A, K> func) {
         final Map<K, Collection<A>> result = new HashMap<>();
 
-        each(list, new CollectionEachFunction<A>() {
+        each(list, new IterableEachFunction<A>() {
             @Override
-            public void run(A item, int index, Collection<A> list) {
+            public void run(A item, int index, Iterable<A> list) {
                 K key = func.transform(item, index, list);
                 Collection<A> values = result.get(key);
 
@@ -506,12 +516,12 @@ public class J_ {
         return result;
     }
 
-    public static <A, K> Map<K, A> indexBy(Collection<A> list, final TransformFunction<A, K> func) {
+    public static <A, K> Map<K, A> indexBy(Iterable<A> list, final TransformFunction<A, K> func) {
         final Map<K, A> result = new HashMap<>();
 
-        each(list, new CollectionEachFunction<A>() {
+        each(list, new IterableEachFunction<A>() {
             @Override
-            public void run(A item, int index, Collection<A> list) {
+            public void run(A item, int index, Iterable<A> list) {
                 K key = func.transform(item, index, list);
 
                 result.put(key, item);
@@ -521,12 +531,12 @@ public class J_ {
         return result;
     }
 
-    public static <A, K> Map<K, Integer> countBy(Collection<A> list, final TransformFunction<A, K> func) {
+    public static <A, K> Map<K, Integer> countBy(Iterable<A> list, final TransformFunction<A, K> func) {
         final Map<K, Integer> result = new HashMap<>();
 
-        each(list, new CollectionEachFunction<A>() {
+        each(list, new IterableEachFunction<A>() {
             @Override
-            public void run(A item, int index, Collection<A> list) {
+            public void run(A item, int index, Iterable<A> list) {
                 K key = func.transform(item, index, list);
                 Integer value = result.get(key);
 
@@ -541,11 +551,17 @@ public class J_ {
         return result;
     }
 
-    public static <A> int size(Collection<A> list) {
-        return list.size();
+    public static <A> int size(Iterable<A> list) {
+        int size = 0;
+
+        for (A item : list) {
+            size++;
+        }
+
+        return size;
     }
 
-    public static <A> Collection<Collection<A>> partition(Collection<A> list, PredicateFunction<A> func) {
+    public static <A> Iterable<Iterable<A>> partition(Iterable<A> list, PredicateFunction<A> func) {
         return Arrays.asList(filter(list, func), reject(list, func));
     }
 
