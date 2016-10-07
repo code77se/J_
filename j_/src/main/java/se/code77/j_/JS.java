@@ -246,6 +246,75 @@ public class JS {
             return mLength;
         }
 
+        public int indexOf(V searchElement) {
+            return indexOf(searchElement, 0);
+        }
+
+        public int indexOf(V searchElement, int fromIndex) {
+            for (Map.Entry<Integer, V> entry : mMap.tailMap(fromIndex).entrySet()) {
+                if (searchElement.equals(entry.getValue())) {
+                    return entry.getKey();
+                }
+            }
+
+            return -1;
+        }
+
+        public int lastIndexOf(V searchElement) {
+            return lastIndexOf(searchElement, mLength - 1);
+        }
+
+        private int lastIndexOf(V searchElement, int fromIndex) {
+            int key = -1;
+
+            for (Map.Entry<Integer, V> entry : mMap.headMap(fromIndex + 1).entrySet()) {
+                if (searchElement.equals(entry.getValue())) {
+                    key = entry.getKey();
+                }
+            }
+
+            return key;
+        }
+
+        public interface PredicateFunction<K, V> {
+            boolean call(V value, K key, JCollection<K, V> collection);
+        }
+
+        public boolean every(PredicateFunction<Integer, V> callback) {
+            for (Map.Entry<Integer, V> entry : mMap.entrySet()) {
+                if (!callback.call(entry.getValue(), entry.getKey(), this)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public JArray<V> filter(PredicateFunction<Integer, V> callback) {
+            JArray<V> result = new JArray<>();
+
+            for (Map.Entry<Integer, V> entry : mMap.entrySet()) {
+                Integer key = entry.getKey();
+                V value = entry.getValue();
+
+                if (callback.call(value, key, this)) {
+                    result.push(value);
+                }
+            }
+
+            return result;
+        }
+
+        public boolean some(PredicateFunction<Integer, V> callback) {
+            for (Map.Entry<Integer, V> entry : mMap.entrySet()) {
+                if (callback.call(entry.getValue(), entry.getKey(), this)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
 
     }
 }
